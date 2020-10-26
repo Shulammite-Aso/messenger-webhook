@@ -9,6 +9,10 @@ const
 
   // Add page access token
   const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+  // Add page id
+  const PAGE_ID = process.env.PAGE_ID;
+  // Add your app id
+  const APP_ID = process.env.APP_ID;
 
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
@@ -79,6 +83,10 @@ app.get('/webhook', (req, res) => {
   }
 });
 
+function firstTrait(nlp, name) {
+  return nlp && nlp.entities && nlp.traits[name] && nlp.traits[name][0];
+}
+
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
 
@@ -87,40 +95,19 @@ function handleMessage(sender_psid, received_message) {
   // Check if the message contains text
   if (received_message.text) {    
 
-    // Create the payload for a basic text message
+    // check greeting is here and is confident
+  const greeting = firstTrait(received_message.nlp, 'wit$greetings');
+  if (greeting && greeting.confidence > 0.8) {
     response = {
-      "text": `You sent the message: "${received_message.text}". Now send me an image!`
-    }
-  }  else if (received_message.attachments) {
-  
-    // Gets the URL of the message attachment
-    let attachment_url = received_message.attachments[0].payload.url;
+      "text": 'Hi there!'
+    } 
+  } else { 
+    // default logic
     response = {
-      "attachment": {
-        "type": "template",
-        "payload": {
-          "template_type": "generic",
-          "elements": [{
-            "title": "Is this the right picture?",
-            "subtitle": "Tap a button to answer.",
-            "image_url": attachment_url,
-            "buttons": [
-              {
-                "type": "postback",
-                "title": "Yes!",
-                "payload": "yes",
-              },
-              {
-                "type": "postback",
-                "title": "No!",
-                "payload": "no",
-              }
-            ],
-          }]
-        }
-      }
-    }
-  
+      "text": "Hello! Please ask me any quetions about books." 
+    } 
+  }
+
   } 
   
   // Sends the response message
@@ -131,17 +118,6 @@ function handleMessage(sender_psid, received_message) {
 function handlePostback(sender_psid, received_postback) {
   let response;
   
-  // Get the payload for the postback
-  let payload = received_postback.payload;
-
-  // Set the response based on the postback payload
-  if (payload === 'yes') {
-    response = { "text": "Thanks!" }
-  } else if (payload === 'no') {
-    response = { "text": "Oops, try sending another image." }
-  }
-  // Send the message to acknowledge the postback
-  callSendAPI(sender_psid, response);
 }
 
 // Sends response messages via the Send API
